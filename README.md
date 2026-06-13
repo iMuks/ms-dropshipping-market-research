@@ -21,7 +21,7 @@ Plus a **final cross-section reconciliation** (margin math, geo alignment, commu
 ## Install
 
 ```bash
-git clone https://github.com/<your-username>/ms-dropshipping-market-research \
+git clone https://github.com/iMuks/ms-dropshipping-market-research \
   ~/.claude/skills/ms-dropshipping-market-research
 ```
 
