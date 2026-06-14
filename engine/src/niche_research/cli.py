@@ -9,6 +9,7 @@ import asyncio
 import json
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -25,12 +26,51 @@ app = typer.Typer(
 console = Console()
 
 
+@app.callback()
+def _main() -> None:
+    """Force Typer to keep the subcommand structure even when only one
+    specialist (`demand`) is registered. As more specialists land
+    (competition, supplier, traffic, community), they slot in beside
+    `demand` without changing the CLI shape."""
+
+
+def _load_config_or_exit() -> Config:
+    """Load Config with a friendly error if required env vars are missing."""
+    try:
+        return Config()  # type: ignore[call-arg]  # pydantic-settings reads .env / env vars
+    except ValidationError as e:
+        missing = [
+            err["loc"][-1]
+            for err in e.errors()
+            if err.get("type") == "missing"
+        ]
+        console.print()
+        console.print("[bold red]niche-research: configuration error[/bold red]")
+        if missing:
+            console.print(f"  Missing required setting(s): [yellow]{', '.join(map(str, missing))}[/yellow]")
+        console.print()
+        console.print("[bold]Fix one of two ways:[/bold]")
+        console.print()
+        console.print("  [cyan]1. Set in your shell[/cyan] (one-off):")
+        console.print("       export ANTHROPIC_API_KEY=sk-ant-...")
+        console.print()
+        console.print("  [cyan]2. Create a .env file[/cyan] (persistent — recommended):")
+        console.print("       mkdir -p ~/.config/niche-research")
+        console.print("       cat > ~/.config/niche-research/.env <<'EOF'")
+        console.print("       ANTHROPIC_API_KEY=sk-ant-...")
+        console.print("       EOF")
+        console.print()
+        console.print("Get a key at: [link]https://console.anthropic.com/[/link]")
+        console.print()
+        raise typer.Exit(code=2)
+
+
 @app.command()
 def demand(
     niche: str = typer.Argument(..., help='Niche to investigate, e.g. "ergonomic standing desks"'),
 ) -> None:
     """Run the Demand specialist for NICHE and print the structured output."""
-    config = Config()  # type: ignore[call-arg]  # pydantic-settings loads from .env
+    config = _load_config_or_exit()
     specialist = DemandSpecialist(model=config.specialist_model)
 
     console.print(Panel.fit(f"[bold]Demand specialist[/bold] investigating: [cyan]{niche}[/cyan]"))
