@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 
 import typer
 from pydantic import ValidationError
@@ -71,6 +72,13 @@ def demand(
 ) -> None:
     """Run the Demand specialist for NICHE and print the structured output."""
     config = _load_config_or_exit()
+
+    # The Claude Agent SDK authenticates via a subprocess that reads
+    # ANTHROPIC_API_KEY from its own environment. pydantic-settings loads the
+    # key into Config (possibly from a .env file) but never touches os.environ,
+    # so we export it here at the composition root before any SDK call.
+    os.environ["ANTHROPIC_API_KEY"] = config.anthropic_api_key
+
     specialist = DemandSpecialist(model=config.specialist_model)
 
     console.print(Panel.fit(f"[bold]Demand specialist[/bold] investigating: [cyan]{niche}[/cyan]"))

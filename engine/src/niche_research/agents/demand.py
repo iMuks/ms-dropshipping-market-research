@@ -19,6 +19,7 @@ import re
 from datetime import datetime, timezone
 
 from claude_agent_sdk import ClaudeAgentOptions, query
+from pydantic import ValidationError
 
 from niche_research.agents.base import SpecialistService
 from niche_research.brief.models import (
@@ -96,15 +97,23 @@ class DemandSpecialist(SpecialistService):
         full_transcript = "\n".join(transcript_chunks)
         parsed = _parse_json_block(full_transcript)
 
-        evidence = [
-            EvidenceURL(
-                url=item["url"],
-                fetched_at=datetime.now(timezone.utc),
-                note=item.get("note", ""),
-            )
-            for item in parsed.get("evidence", [])
-            if isinstance(item, dict) and item.get("url")
-        ]
+        # Build evidence defensively: a single malformed URL from the model
+        # must not discard an otherwise-complete brief. Skip bad entries
+        # rather than letting HttpUrl validation abort investigate().
+        evidence: list[EvidenceURL] = []
+        for item in parsed.get("evidence", []):
+            if not (isinstance(item, dict) and item.get("url")):
+                continue
+            try:
+                evidence.append(
+                    EvidenceURL(
+                        url=item["url"],
+                        fetched_at=datetime.now(timezone.utc),
+                        note=item.get("note", ""),
+                    )
+                )
+            except ValidationError:
+                continue
 
         return SpecialistOutput(
             niche=niche,
@@ -155,4 +164,10 @@ def _parse_json_block(transcript: str) -> dict:
             "DemandSpecialist: model did not return a ```json block. "
             "Transcript was:\n" + transcript[-2000:]
         )
-    return json.loads(matches[-1])
+    try:
+        return json.loads(matches[-1])
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"DemandSpecialist: found a ```json block but it was not valid JSON ({e}). "
+            "Block was:\n" + matches[-1][-2000:]
+        ) from e
