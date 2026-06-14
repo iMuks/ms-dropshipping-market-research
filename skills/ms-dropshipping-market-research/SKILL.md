@@ -145,33 +145,109 @@ APPROVED iff:
 
 Otherwise: `REJECTED`, with the failing criteria and reasons explicit.
 
-## Output format
+## Required output template — the customer's "designed output"
 
-Produce a markdown brief with this header:
+Every brief MUST be a single markdown document with this exact structure. This is what the customer pays for; it does not vary by niche.
 
-```yaml
+```markdown
 ---
 niche: "<niche>"
 slug: <niche-slug>
 run_date: <YYYY-MM-DD>
-verdict: APPROVED | REJECTED
+verdict: APPROVED | REJECTED | PROVISIONAL
 score: <0.0–1.0>
+mode: engine-CLI | skill-fallback | hybrid
 ---
+
+# Opportunity Brief — <Niche Title>
+
+> One-paragraph executive summary: the verdict, the score, the headline reason, the recommended sub-niche / positioning angle if APPROVED, or the disqualifying factor if REJECTED.
+
+## §1 Demand — <PASS / WEAK / FAIL>
+- Per-criterion table (D1–D9 with PASS/WEAK/FAIL and a URL per row)
+- Predicted next seasonal window + build→launch lead time
+- 36-month trajectory note
+
+## §2 Competition — <PASS / WEAK / FAIL>
+- Per-criterion table (C1–C10)
+- Top 10 organic SERP results with fetched URLs
+- Marketplace bestseller intel (Amazon + at least one of Temu/Shein/AliExpress)
+- Price-tier distribution
+
+## §3 Supply — <PASS / WEAK / FAIL>   *(strict — FAIL → entire brief auto-REJECTED)*
+- ≥3 verifiable suppliers, each with: name, URL, country, lead time, MOQ, dropship support, returns, warranty
+- S1–S8 per-criterion verdicts
+
+## §4 Traffic — <PASS / WEAK / FAIL>
+- Per-channel viability (search / social / community)
+- CAC vs gross margin math
+- ≥30 long-tail buyer-intent queries for Pipeline 4
+
+## §5 Community Needs — <PASS / WEAK / FAIL>
+- Top 5 stated needs (≥2 verbatim quotes each, source URLs)
+- Top 3 unmet needs (with workaround quotes)
+- Top 5 marketplace pain points (from 1-star reviews; SKU + URL)
+- Top 5 marketplace strengths (from 5-star reviews; SKU + URL)
+- Audience persona (3–5 paragraphs, evidence-cited)
+- **Recommended positioning angle** (every claim numbered → evidence)
+- Willingness-to-pay distribution
+- "What NOT to do" — ≥2 community-cited traps
+
+## §6 Cross-section reconciliation
+- F1–F13 per-check verdicts (table)
+- Risk register (3–5 risks; each with mitigation; ≥1 community-grounded)
+
+## §7 Final verdict
+- final_score = 0.22*D + 0.18*C + 0.25*S + 0.13*T + 0.22*N
+- Numeric score with each section's contribution
+- APPROVED / REJECTED / PROVISIONAL with explicit reasons
+
+## §8 Reviewer notes
+- Per-section per-criterion notes
+- Any unverified claims that were dropped
+
+## §9 Evidence appendix
+- Every URL fetched, with fetch timestamp
+- All sources marked UNAVAILABLE with reason
+- DataForSEO query IDs (if used)
+- Reddit / FB Group / forum thread IDs
+
+## §10 Self-verification checklist
+The skill MUST end the brief with this checklist, ticking each box that applies:
+- [ ] §1 includes 36-month multi-year overlay (NOT 12-month only)
+- [ ] §1 includes predicted next seasonal window with confidence (HIGH/MED/LOW)
+- [ ] §2 includes marketplace bestseller intel with at least one platform fetched
+- [ ] §3 has ≥3 verifiable suppliers, each with a fetched URL
+- [ ] §5 includes at least one source from Reddit / Facebook Group / Facebook Page
+- [ ] §5 audience persona derived from evidence (not invented)
+- [ ] §5 recommended positioning angle has every claim linked to numbered evidence
+- [ ] §6 has all F1–F13 checks with a verdict (PASS / WEAK / FAIL / N/A)
+- [ ] §6 risk register has ≥3 risks each with a mitigation
+- [ ] §9 evidence appendix lists EVERY URL the brief cites
+- [ ] No invented suppliers, search volumes, quotes, or URLs anywhere in the brief
+- [ ] Verdict at top matches §7 final verdict (no contradiction)
+
+Any unchecked box means the brief is incomplete — DO NOT emit a verdict of APPROVED if any box is unchecked; downgrade to PROVISIONAL with the missing items listed in the executive summary.
 ```
 
-…followed by sections §1 through §6 with per-criterion verdicts, an Evidence Appendix listing every URL fetched (with timestamps), and the final verdict.
+When run via **Path A (engine CLI)**, trust the CLI's output structure for sections it implements and produce only the sections it doesn't (mark `mode: hybrid` at the top). When run via **Path B (fallback)**, produce this entire structure yourself (mark `mode: skill-fallback`).
 
-When run via Path A (engine CLI), trust the CLI's output structure. When run via Path B (fallback), produce this format yourself.
+## Hard rules (non-negotiable)
 
-## Hard rules
+You MUST follow every rule below. A brief that violates any rule must NOT be emitted as APPROVED.
 
-- **Never invent suppliers, search volumes, review quotes, or URLs.** If a source is unavailable, mark it `UNAVAILABLE` — do not paper over the gap.
-- **Every quantitative claim** has a URL the user can click.
-- **Every "buyers want X" statement** has ≥ 2 verbatim quotes from real threads.
-- **The recommended positioning angle** is traceable line-by-line to the quoted evidence; no marketing copy fluff.
-- **Reddit, marketplace, and community access is read-only** — never post, comment, or authenticate as a posting account.
-- **No bulk scraping** — fetch what the analysis genuinely needs, not a category-wide dump.
-- **Multi-year is mandatory for seasonality** — 12-month curves alone are not accepted because one-year spikes are often viral noise.
+1. **Never invent** suppliers, search volumes, review quotes, or URLs. If a source is unavailable, mark it `UNAVAILABLE` with a reason — do NOT paper over the gap.
+2. **Every quantitative claim** has a URL the user can click in §9.
+3. **Every "buyers want X" statement** has ≥2 verbatim quotes from real threads, each with a source URL.
+4. **The recommended positioning angle** is traceable line-by-line to numbered quoted evidence; NO marketing copy fluff.
+5. **Reddit, marketplace, and community access is read-only.** Never post, comment, or authenticate as a posting account.
+6. **No bulk scraping.** Fetch what the analysis genuinely needs, not a category-wide dump.
+7. **Multi-year (24–36 mo) is mandatory for seasonality.** 12-month curves alone are NOT accepted because one-year spikes are often viral noise.
+8. **Facebook coverage:** when the niche has identifiable Facebook Groups ≥1k members, evidence from them is required OR the brief explicitly marks Facebook `UNAVAILABLE` with reason. Silent omission is a FAIL.
+9. **Match the output template exactly** — every section header, every checklist box. Customers depend on a stable output shape.
+10. **Self-verification checklist (§10) is mandatory.** A brief without it is incomplete.
+
+If you cannot satisfy a rule (e.g., a source is genuinely unreachable), document the gap in §9 evidence appendix AND downgrade the brief verdict to `PROVISIONAL` with a one-line explanation in the executive summary. Never silently fail and emit `APPROVED`.
 
 ## Reference files
 
