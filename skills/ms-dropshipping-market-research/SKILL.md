@@ -83,8 +83,15 @@ Without verifiable suppliers, the niche is automatically `REJECTED`.
 This is the section that gives the niche its positioning angle.
 
 - **Read** real threads, do not just count posts.
-- Primary source: Reddit. Identify 2–4 relevant subreddits; deep-read top posts + top-N comments from the last 12 months. Use the Reddit `.json` endpoint via `WebFetch` (e.g. `https://www.reddit.com/r/<sub>/top.json?t=year&limit=25`) — no auth required for read-only.
-- Supporting sources: Discord, niche forums, Facebook Groups, Quora, YouTube comments.
+- **Reddit** (primary): Identify 2–4 relevant subreddits; deep-read top posts + top-N comments from the last 12 months. Use the Reddit `.json` endpoint via `WebFetch` (e.g. `https://www.reddit.com/r/<sub>/top.json?t=year&limit=25`) — no auth required for read-only.
+- **Facebook Groups** (when active groups exist for the niche): production mode uses the bundled engine's Apify Facebook Group Scraper actor (`APIFY_ACTOR_FB_GROUP`). For the skill's Path B fallback, use Google site-searches to find indexed *public* Group posts and comments:
+  - `site:facebook.com/groups <niche keywords>` — surface public posts indexed by Google.
+  - `site:facebook.com/groups "<specific pain phrase>" <niche>` — target specific complaints/needs.
+  - For each hit, `WebFetch` the URL; many Group pages render basic post content to non-logged-in users (full comment threads typically require login).
+  - If no active Group ≥1k members surfaces, mark Facebook `UNAVAILABLE` with reason — never invent.
+  - Read-only, sample size, respect Meta ToS. Do not authenticate as a posting account.
+- **Facebook Pages** (always public): identify the niche's most-followed Pages (brands, communities, experts). `WebFetch` the public Page URL; fetch comment threads under product-related posts — high signal for pain points.
+- Supporting: Discord, niche forums, Quora, YouTube comments.
 - Marketplace voice-of-customer: Amazon reviews + Q&A, Temu / Shein / AliExpress reviews for top SKUs in the category. **1-star reviews are unmet-need gold; 5-star reviews show the minimum bar.**
 
 Required outputs (no claim without verbatim quote evidence):

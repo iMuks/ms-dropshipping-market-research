@@ -82,7 +82,7 @@ Five sections, scored on a domain-specific rubric:
 | **§2 Competition** | SERP fragmentation + marketplace bestseller intel (Amazon / Temu / Shein / AliExpress) |
 | **§3 Supply** *(STRICT)* | ≥3 verifiable suppliers with fetched URLs — fail → auto-reject |
 | **§4 Traffic** | Per-channel viability, implied CAC vs gross margin, long-tail keyword cluster |
-| **§5 Community Needs** | Audience persona derived from **verbatim quotes** (Reddit + marketplace reviews); top-5 stated needs, top-3 unmet needs, top-5 marketplace pain points (1-star), recommended positioning angle traceable to evidence |
+| **§5 Community Needs** | Audience persona derived from **verbatim quotes** across two source families: **discussion** (Reddit via PRAW, **Facebook Groups + Pages + comment threads** via Apify, Discord, niche forums, Quora, YouTube comments) and **marketplace VoC** (Amazon reviews/Q&A, Temu/Shein/AliExpress reviews). Top-5 stated needs, top-3 unmet needs, top-5 marketplace pain points (1-star), recommended positioning angle traceable to specific quotes. |
 | **Final reconciliation** | Margin math, geo alignment, community needs ↔ supply mapping, launch window vs build lead time, risk register |
 
 `APPROVED` only if `final_score ≥ 0.70`, no FAIL on Supply, no FAIL on any of F1–F13, and the risk register has at least one community-grounded risk. Otherwise `REJECTED` with explicit reasons.

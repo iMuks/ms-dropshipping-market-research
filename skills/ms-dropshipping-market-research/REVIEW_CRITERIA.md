@@ -106,15 +106,29 @@ Specialist **must pull 36 months** of pytrends data (`timeframe='today 5-y'` is 
 
 This section mines **what real buyers are asking for** across two source families:
 
-**Discussion sources** — Reddit (primary, via PRAW), Discord, niche forums, Facebook Groups, Quora, YouTube comments.
+**Discussion sources:**
 
-**Marketplace voice-of-customer sources** — Amazon reviews + Q&A (via DataForSEO), Temu / Shein / AliExpress reviews (via Apify actors), Etsy reviews (where relevant). 1-star reviews are unmet-need gold; 5-star reviews show what buyers actually value.
+- **Reddit** (primary, via PRAW) — public, no login required.
+- **Facebook Groups** (membership-gated) — for many niches, the highest-density buyer conversations live in private Groups (e.g., "Standing Desk Enthusiasts," "Outdoor Sauna Owners US"). Production access: **Apify Facebook Group Scraper actor** (`APIFY_ACTOR_FB_GROUP`) with a logged-in cookie session — handles anti-bot and rate limits. Fallback (skill / no Apify): Google search `site:facebook.com/groups/<niche>` to find indexed *public* posts and pages; many Groups expose top posts publicly. **Always respect Meta ToS — read-only, sample size, never post.**
+- **Facebook Pages** (public) — brand pages, niche communities, expert pages and their public posts + comments. Fetch via public URL with `WebFetch`. The comment threads under product-related posts are often gold for pain points.
+- **Discord** — niche-specific servers; check pinned channels + recent activity.
+- **Niche forums** (e.g., Houzz for home decor, AVS Forum for AV, Garage Journal for tools).
+- **Quora** — search for buyer-intent questions; read top-voted answers + comments.
+- **YouTube comments** — under top product review videos; pain points often surface in long comment threads.
+
+**Marketplace voice-of-customer sources:**
+
+- **Amazon reviews + Q&A** (via DataForSEO).
+- **Temu / Shein / AliExpress reviews** (via Apify actors).
+- **Etsy reviews** (where relevant — handmade and small-batch niches).
+
+1-star reviews are unmet-need gold; 5-star reviews show what buyers actually value and the minimum bar.
 
 The point is not "is there activity" but **"what needs are unmet that suppliers can satisfy."**
 
 | # | Criterion | Weight | PASS | WEAK | FAIL | Evidence |
 |---|-----------|--------|------|------|------|----------|
-| N1 | Multi-source presence | 0.10 | Active discussion across ≥2 communities (Reddit + Discord/forum/FB Group/Quora) | Single community | None | Community URLs |
+| N1 | Multi-source presence | 0.10 | Active discussion across ≥2 sources, **including at least one of Reddit / Facebook Group / Facebook Page** (i.e., a real buyer community, not just an article comment section). When ≥1 active FB Group with ≥1k members exists for the niche, evidence from it is required or explicitly marked `UNAVAILABLE` with reason (e.g., "no Apify token configured"). | Single community OR FB skipped without reason | None, or FB skipped silently when active groups exist | Community URLs + member counts |
 | N2 | Buying-intent thread volume | 0.15 | ≥10 buying-intent threads in last 90 days | 3–10 | < 3 | Thread IDs with timestamps |
 | N3 | Unmet-need signal | 0.20 | ≥3 distinct "I wish there was…" / "Why doesn't anyone make…" threads in last 6 months | 1–3 | None (market is satisfied) | Thread excerpts with URLs |
 | N4 | Workaround signal | 0.15 | Buyers using inferior DIY / cobbled-together solutions (= unmet demand) | Some workarounds | Buyers content with existing options | Thread excerpts |
