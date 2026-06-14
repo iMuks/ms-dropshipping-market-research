@@ -122,6 +122,9 @@ def verify() -> None:
         _check("Package importable", False, str(e))
 
     # 2. Config load (this also verifies the env file search order).
+    # Bind config up front so a config failure can never leave it unbound for
+    # the checks below — a smoke test must degrade gracefully, never crash.
+    config: Config | None = None
     try:
         config = Config()  # type: ignore[call-arg]
         env_file = config.env_file_used
@@ -137,7 +140,12 @@ def verify() -> None:
             False,
             f"missing: {', '.join(missing)} — see 'niche-research demand --help' for fix",
         )
-        config = None  # type: ignore[assignment]
+    except Exception as e:  # malformed .env, parse errors, etc. — don't crash the smoke test
+        _check(
+            "Config loads from .env / env vars",
+            False,
+            f"unexpected error loading config: {e}",
+        )
 
     # 3. API key shape (no network call — just sanity-check the value).
     if config is not None:
