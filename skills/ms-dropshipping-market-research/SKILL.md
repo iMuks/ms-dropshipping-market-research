@@ -28,15 +28,17 @@ Do **not** trigger for: low-ticket / impulse-buy categories, generic ecommerce q
 
 ### Path A — Engine CLI is installed (preferred)
 
-If a `niche-research` command exists on the user's machine (check with `which niche-research` or `command -v niche-research`), invoke it:
+This plugin **bundles the `niche-research` Python engine** in its `engine/` directory and auto-installs it on session start via the SessionStart hook (`hooks/ensure_engine_installed.sh`). On Macs with `uv` or `pipx` installed, the CLI is on PATH the first time the plugin activates — no manual setup needed.
+
+Check with `command -v niche-research`. If found, invoke:
 
 ```bash
 niche-research demand "<niche>"
 ```
 
-The engine will return a structured `SpecialistOutput` with evidence URLs. Report the output verbatim, then briefly summarize the verdict at the top.
+The engine returns a structured `SpecialistOutput` with evidence URLs and Langfuse-traced execution. Report the output verbatim, then briefly summarize the verdict at the top.
 
-> v0 only ships the Demand specialist. For the other sections (Competition / Supply / Traffic / Community Needs / cross-section reconciliation), fall through to Path B and explicitly note in the response which sections came from the CLI vs from this skill's fallback.
+> The engine currently only ships the Demand specialist. For the other sections (Competition / Supply / Traffic / Community Needs / cross-section reconciliation), fall through to Path B and explicitly note in the response which sections came from the CLI vs from this skill's fallback. As more specialists land in the engine, the skill will use Path A for them automatically.
 
 ### Path B — Fallback (engine CLI not installed, or sections not yet built)
 

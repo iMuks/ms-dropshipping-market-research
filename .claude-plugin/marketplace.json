@@ -1,0 +1,17 @@
+{
+  "name": "ms-dropshipping",
+  "owner": {
+    "name": "Mukesh Sharma",
+    "email": "mukesh.ct.pce@gmail.com",
+    "url": "https://github.com/iMuks"
+  },
+  "plugins": [
+    {
+      "name": "ms-dropshipping-market-research",
+      "source": ".",
+      "description": "High-ticket dropshipping niche research skill + bundled niche-research Python engine CLI. Evidence-cited opportunity briefs with multi-criteria rubric.",
+      "version": "0.2.0",
+      "keywords": ["dropshipping", "high-ticket", "market-research", "shopify"]
+    }
+  ]
+}

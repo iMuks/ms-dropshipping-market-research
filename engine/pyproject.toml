@@ -1,0 +1,37 @@
+[project]
+name = "niche-research"
+version = "0.1.0"
+description = "Pipeline 1 of the Storefront Engine — AI-driven high-ticket niche research as a CLI"
+requires-python = ">=3.11"
+dependencies = [
+    "claude-agent-sdk>=0.1.0",
+    "langfuse>=2.0.0",
+    "opentelemetry-sdk>=1.27.0",
+    "opentelemetry-exporter-otlp>=1.27.0",
+    "praw>=7.7.1",
+    "pytrends>=4.9.2",
+    "httpx>=0.27.0",
+    "typer>=0.12.0",
+    "pydantic>=2.7.0",
+    "pyyaml>=6.0",
+    "rich>=13.7.0",
+    "tenacity>=8.2.0",
+    "pydantic-settings>=2.4.0",
+]
+
+[project.scripts]
+niche-research = "niche_research.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/niche_research"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.5.0",
+]
