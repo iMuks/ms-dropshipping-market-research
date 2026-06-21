@@ -5,7 +5,9 @@ names, this *finds* candidate high-ticket dropshipping products/items, ranks
 them, and returns leads to deep-validate with the full pipeline
 (`niche-research run "<name>"`).
 
-SDK plumbing lives in ``_sdk.py``; this file is the discovery prompt + schema.
+The system prompt is STATIC (no str.format) so the literal JSON braces in the
+schema example are never misparsed; per-run values (min AOV, count) go in the
+user prompt. SDK plumbing lives in ``_sdk.py``.
 """
 from __future__ import annotations
 
@@ -20,8 +22,8 @@ dropshipping research pipeline. Your job is to SUGGEST candidate products/niches
 worth researching — not to validate one. Return a ranked shortlist.
 
 What "high-ticket dropshipping" requires (filter HARD on these):
-- **AOV >= ${min_aov}** — typical order value at or above this. Reject impulse /
-  low-ticket items.
+- **High AOV** — typical order value at or above the minimum given in your task
+  (e.g. $300+). Reject impulse / low-ticket items below that bar.
 - **Considered purchase** — buyers research before buying (multi-word queries,
   comparison threads), not impulse.
 - **Dropship-operable** — a real supplier path exists; NOT perishable, heavily
@@ -39,12 +41,13 @@ Rules:
   remote work, EV/outdoor, sustainability) — don't return 10 variants of one item.
 - If you are unsure a candidate clears the AOV bar, leave it OUT rather than pad.
 
-Return exactly {count} candidates (or fewer if you can't verify {count}).
+Return the number of candidates requested in your task (or fewer if you can't
+verify that many).
 
 Output format (return exactly this JSON in a fenced ```json block, nothing else after it):
-{{
+{
   "candidates": [
-    {{
+    {
       "name": "<specific product/niche>",
       "category": "<broader category>",
       "price_range_usd": "<e.g. $400-$900>",
@@ -54,24 +57,23 @@ Output format (return exactly this JSON in a fenced ```json block, nothing else 
       "supplier_availability": "<short phrase, e.g. 'US dropship via Spocket'>",
       "opportunity_score": <float 0.0-1.0 — your overall lead strength>,
       "rationale": "<1-2 sentences: why high-ticket + where the wedge is>",
-      "evidence": [{{"url": "<https://...>", "note": "<what this supports>"}}]
-    }}
+      "evidence": [{"url": "<https://...>", "note": "<what this supports>"}]
+    }
   ],
   "summary": "<2-3 sentence overview of the shortlist and the strongest theme>"
-}}
+}
 """
 
 
 class DiscoverySpecialist(DiscoveryService):
     """Suggests ranked high-ticket product candidates."""
 
-    def __init__(self, model: str, max_turns: int = 14, min_aov_usd: float = 300.0) -> None:
+    def __init__(self, model: str, max_turns: int = 18, min_aov_usd: float = 300.0) -> None:
         self._model = model
         self._max_turns = max_turns
         self._min_aov = min_aov_usd
 
     async def discover(self, seed: str | None, count: int) -> DiscoveryResult:
-        system_prompt = _SYSTEM_PROMPT.format(min_aov=int(self._min_aov), count=count)
         focus = (
             f"Focus the discovery on: {seed}.\n\n"
             if seed
@@ -79,13 +81,13 @@ class DiscoverySpecialist(DiscoveryService):
         )
         prompt = (
             f"{focus}"
-            f"Suggest {count} high-ticket dropshipping product candidates (AOV >= "
-            f"${int(self._min_aov)}), ranked by opportunity. Use WebSearch + WebFetch and "
+            f"Suggest {count} high-ticket dropshipping product candidates with AOV >= "
+            f"${int(self._min_aov)}, ranked by opportunity. Use WebSearch + WebFetch and "
             "cite real URLs. Return the JSON block specified in your system prompt."
         )
 
         parsed = await run_specialist_query(
-            system_prompt=system_prompt,
+            system_prompt=_SYSTEM_PROMPT,
             prompt=prompt,
             model=self._model,
             max_turns=self._max_turns,

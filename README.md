@@ -1,102 +1,105 @@
 # ms-dropshipping-market-research
 
-A [Claude Code](https://claude.com/claude-code) **plugin** that bundles a high-ticket Shopify dropshipping market research skill **and** a Python research engine — installable with two commands, no manual Python setup needed.
+A [Claude Code](https://claude.com/claude-code) **plugin** that bundles a high-ticket Shopify dropshipping research **skill** plus a Python research **engine** (`niche-research`) — installable from GitHub in two commands, no manual Python setup, and it runs on your **Claude Pro/Max subscription** by default (no separate API billing).
 
-Triggered as `/ms-dropshipping-market-research <niche>` or by natural-language requests like *"research X for high-ticket dropshipping"*, *"is X a viable niche?"*, *"score X as a dropshipping opportunity"*.
+It runs in **two modes**:
 
-## What's in this plugin
+- **Discover** — suggest a ranked list of high-ticket product/niche ideas (AOV ≥ $300) to research.
+- **Validate** — produce an evidence-cited opportunity brief for a named niche (demand with 24–36-month seasonality + next-window forecast + geographic breakdown, competition with top-5 marketplace products, community needs from verbatim Reddit comments).
 
-| Component | What it is |
-|-----------|------------|
-| **Skill** (`/ms-dropshipping-market-research`) | The user-facing entry point — slash command + auto-trigger on natural language |
-| **Engine** (`niche-research` CLI) | Python research engine with specialist agents, paired domain-expert reviewers, multi-criteria rubric, Langfuse-traced execution |
-| **SessionStart hook** | Auto-installs the engine CLI on first activation via `uv` or `pipx` — no manual `pip install` needed |
-| **Rubric** (`REVIEW_CRITERIA.md`) | Full per-criterion scoring rules (D1–D9, C1–C10, S1–S8, T1–T5, N1–N10, F1–F13) |
-| **Schema** (`SCHEMA.md`) | Standardized opportunity brief format |
+Triggered as `/ms-dropshipping-market-research [niche]` or by natural language: *"suggest high-ticket products"*, *"research outdoor saunas for high-ticket dropshipping"*, *"is residential mini-split AC a viable niche?"*.
 
-## Install (one-time)
+---
 
-### Prerequisites
+## Quick start (do these in order)
 
-- Mac (Linux works too; Windows untested).
-- Either [`uv`](https://docs.astral.sh/uv/) (recommended) or [`pipx`](https://pipx.pypa.io/) — for installing the bundled Python engine in an isolated env:
+### 1. Install a Python runner (one-time)
 
-  ```bash
-  brew install uv     # recommended
-  # or:  brew install pipx
-  ```
+The engine installs itself, but it needs [`uv`](https://docs.astral.sh/uv/) (recommended) or [`pipx`](https://pipx.pypa.io/) present:
 
-  If neither is installed, the skill still works in fallback mode (WebSearch + WebFetch only), but the engine CLI won't be available.
+```bash
+brew install uv      # recommended  (or: brew install pipx)
+```
 
-### Add the marketplace and install the plugin
+> Without `uv`/`pipx`, the skill still works in **fallback mode** (Claude's `WebSearch` + `WebFetch`), just without the structured engine CLI.
 
-Inside Claude Code:
+### 2. Install the plugin (type these in the Claude Code prompt — not a terminal)
 
 ```text
 /plugin marketplace add iMuks/ms-dropshipping-market-research
 /plugin install ms-dropshipping-market-research
 ```
 
-Then **restart Claude Code**. The SessionStart hook fires once and installs `niche-research` into your isolated Python tool dir. You'll see a one-line confirmation in the terminal:
+`/plugin` is a built-in Claude Code command. (The repo must be **public** to install it on another machine.)
+
+### 3. Restart Claude Code
+
+Fully quit and reopen. On relaunch, the SessionStart hook installs the `niche-research` engine and loads the skill.
+
+### 4. Make sure you're signed in (subscription auth)
+
+The engine reuses your Claude Code login — **no API key needed**. If you're already using Claude Code, you're set. To confirm or sign in:
 
 ```text
-[ms-dropshipping-market-research] engine CLI installed. Try: niche-research demand "<niche>"
+! claude /login        # choose your Pro/Max account
 ```
 
-## Use
+### 5. Use it
 
 ```text
-/ms-dropshipping-market-research ergonomic standing desks
+/ms-dropshipping-market-research                          # discover product ideas
+/ms-dropshipping-market-research "ergonomic standing desks"   # validate a niche
 ```
 
-Or just natural language anywhere in Claude Code:
+Or just ask in natural language:
 
 ```text
+suggest high-ticket dropshipping products
 research outdoor saunas for high-ticket dropshipping
-is residential mini-split AC a viable niche?
-score luxury home gym equipment as a dropshipping opportunity
+is luxury home gym equipment a viable high-ticket niche?
 ```
 
-You can also run the engine directly from any terminal:
+---
+
+## Running the engine directly (any terminal)
 
 ```bash
-# ── One command does everything (bootstraps deps, verifies login, runs) ──
-./research.sh                              # suggest high-ticket products to research
-./research.sh --suggest "home gym"         # focused product discovery
-./research.sh "ergonomic standing desks"   # full opportunity brief for a niche
+# ── One command does everything (bootstraps deps → verify login → run) ──
+./research.sh                              # discover: suggest high-ticket products
+./research.sh --suggest "home gym"         # focused discovery
+./research.sh "ergonomic standing desks"   # validate: full opportunity brief
 
 # ── Or call the CLI directly ──
-niche-research suggest                      # discovery: ranked high-ticket product ideas
+niche-research suggest                      # discovery: ranked product ideas
 niche-research suggest "aging-in-place"     # focused discovery
 niche-research run "ergonomic standing desks"   # full pipeline → assembled brief
 
 # One section at a time (debug / cheaper):
-niche-research demand      "ergonomic standing desks"
+niche-research demand      "ergonomic standing desks"   # D1–D9: multi-year + forecast + geo
 niche-research competition "ergonomic standing desks"   # major top-5 marketplace products
 niche-research community   "ergonomic standing desks"   # verbatim Reddit user comments
 
-niche-research verify        # smoke-test the install — no API call, no money spent
+niche-research verify        # smoke-test install + login — free, no tokens
 ```
 
-### Two modes: discover, then validate
+Briefs are written to `~/niche-research/briefs/<slug>-<date>.md`.
 
-1. **Discover** — `suggest` returns a ranked shortlist of candidate high-ticket
-   products (name, price range, ~AOV, competition, opportunity score, why-it's-a-lead,
-   source URL). No niche needed.
-2. **Validate** — `run "<name>"` deep-validates one candidate into a full
-   evidence-cited brief.
+---
 
-`research.sh` is the single self-bootstrapping entry point: it resolves a runner
-(installed CLI, else `uv run` which installs deps on first call), runs `verify`,
-then picks discovery or validation based on whether you named a niche. Auth uses
-your **Claude Pro/Max subscription** by default — no separate API key needed.
+## Authentication: subscription vs API key
 
-### `pipeline.yaml` — engines + which specialists run
+| Mode | When | Cost |
+|------|------|------|
+| **Claude subscription** (default) | No `ANTHROPIC_API_KEY` set — reuses your Claude Code Pro/Max login | Draws on your plan's rate limits; no per-token bill |
+| **API key** | `ANTHROPIC_API_KEY` is set (in env or `~/.config/niche-research/.env`) | Pay-per-token (~$1–4 per full `run`) |
 
-`engine/pipeline.yaml` is the declarative control surface for a full `run`: it
-defines the **model engine per role**, the **scoring weights**, the
-**cross-cutting gates**, and **which specialists are enabled**. Secrets stay in
-`.env`; `pipeline.yaml` decides *what* runs and *with which model*.
+A set `ANTHROPIC_API_KEY` always wins, so for subscription mode make sure none is set. `niche-research verify` prints which mode is active.
+
+---
+
+## `pipeline.yaml` — engines + which specialists run
+
+`engine/pipeline.yaml` is the declarative control surface for a full `run`: the **model engine per role**, **scoring weights**, **cross-cutting gates**, and **which specialists are enabled**. Secrets stay in `.env`; `pipeline.yaml` decides *what* runs and *with which model*.
 
 ```yaml
 engines:
@@ -109,108 +112,101 @@ specialists:
   - { id: community,   enabled: true,  engine: specialist, reddit: { max_subreddits: 4 } }
   - { id: supply,      enabled: false }   # not yet built
   - { id: traffic,     enabled: false }   # not yet built
+discovery: { engine: specialist, default_count: 10, min_aov_usd: 300 }
 ```
 
-Override the file location with `NICHE_RESEARCH_PIPELINE_FILE`, or drop a
-`pipeline.yaml` in your cwd / `~/.config/niche-research/`. Today **demand,
-competition, and community** ship; the engine caps the verdict at
-`PROVISIONAL` until Supply, Traffic, and the paired reviewers land — it never
-emits `APPROVED` on a partial run.
+Override the location with `NICHE_RESEARCH_PIPELINE_FILE`, or drop a `pipeline.yaml` in your cwd / `~/.config/niche-research/`.
+
+---
+
+## What a brief contains
+
+| Section | Highlights |
+|---------|------------|
+| **§1 Demand** | 24–36-month multi-year overlay with YoY peak repetition; predicted next seasonal window (confidence) + build→launch lead time; **per-region geographic breakdown**; buyer-intent mix; macro-trend alignment |
+| **§2 Competition** | Organic SERP landscape + marketplace bestseller intel — the **major top-5 products** (Amazon / Temu / AliExpress) with price, reviews, brand; price-tier distribution |
+| **§5 Community Needs** | Audience persona from **verbatim Reddit comments**; top stated + unmet needs; positioning angle traceable to quotes; willingness-to-pay; "what not to do" |
+| **§3 Supply / §4 Traffic / §6 reconciliation** | Roadmap (not yet in the engine) — produced via the skill's fallback and merged as `mode: hybrid` |
+
+The engine **never emits `APPROVED` on a partial run** — the verdict is capped at `PROVISIONAL` until Supply, Traffic, and the paired reviewers land. Full scoring rules: `skills/ms-dropshipping-market-research/REVIEW_CRITERIA.md` (D1–D9, C1–C10, S1–S8, T1–T5, N1–N10, F1–F13).
+
+---
+
+## Hard rules the skill enforces
+
+- Every quantitative claim has a fetched URL — no hallucinated numbers, no invented suppliers/products.
+- Every "buyers want X" claim has ≥2 verbatim quotes from real threads.
+- Multi-year (24–36 mo) seasonality is mandatory — single-year curves are rejected (one-year spikes are often viral noise).
+- Reddit and community access is **read-only** — never authenticates as a posting account.
+- Cross-cutting gates: AOV ≥ $300, gross margin ≥ 25%, considered-purchase signal, operational fit.
+
+---
+
+## Share with a client
+
+```bash
+./package.sh        # builds dist/<name>-<version>.zip + .tar.gz + .sha256 (no secrets)
+```
+
+Then either send the `.zip` + `.sha256`, or have the client run the `/plugin marketplace add iMuks/…` flow above. Full author + client steps and a pre-ship checklist are in **[VALIDATION.md](VALIDATION.md)**.
+
+---
 
 ## How it works — two execution paths
 
 | Path | When | What it does |
 |------|------|--------------|
-| **A. Engine CLI** (preferred) | After the SessionStart hook installs `niche-research` | Real APIs (DataForSEO, PRAW, pytrends, Apify), structured `SpecialistOutput`, Langfuse traces |
+| **A. Engine CLI** (preferred) | After the SessionStart hook installs `niche-research` | Claude Agent SDK + `WebSearch`/`WebFetch`, structured outputs, assembled brief. (Production data sources — DataForSEO, PRAW, pytrends, Apify — are configured in `.env.example` for the roadmap; today's specialists run on the Agent SDK web tools.) |
 | **B. Built-in fallback** | If `uv`/`pipx` aren't installed, or for sections the engine hasn't built yet | Same methodology via Claude Code's `WebSearch` + `WebFetch` |
 
-The skill seamlessly mixes both — if Demand is available via Path A but Competition isn't yet built into the engine, the skill uses A for §1 and B for §2.
+The skill mixes both — e.g. Demand/Competition/Community from Path A, Supply/Traffic from Path B (`mode: hybrid`).
 
-## What a brief contains
-
-Five sections, scored on a domain-specific rubric:
-
-| Section | Highlights |
-|---------|------------|
-| **§1 Demand** | 24–36 month trajectory + year-over-year overlay; predicted next seasonal window + recommended build-to-launch lead time; macro-trend alignment |
-| **§2 Competition** | SERP fragmentation + marketplace bestseller intel (Amazon / Temu / Shein / AliExpress) |
-| **§3 Supply** *(STRICT)* | ≥3 verifiable suppliers with fetched URLs — fail → auto-reject |
-| **§4 Traffic** | Per-channel viability, implied CAC vs gross margin, long-tail keyword cluster |
-| **§5 Community Needs** | Audience persona derived from **verbatim quotes** across two source families: **discussion** (Reddit via PRAW, **Facebook Groups + Pages + comment threads** via Apify, Discord, niche forums, Quora, YouTube comments) and **marketplace VoC** (Amazon reviews/Q&A, Temu/Shein/AliExpress reviews). Top-5 stated needs, top-3 unmet needs, top-5 marketplace pain points (1-star), recommended positioning angle traceable to specific quotes. |
-| **Final reconciliation** | Margin math, geo alignment, community needs ↔ supply mapping, launch window vs build lead time, risk register |
-
-`APPROVED` only if `final_score ≥ 0.70`, no FAIL on Supply, no FAIL on any of F1–F13, and the risk register has at least one community-grounded risk. Otherwise `REJECTED` with explicit reasons.
-
-## Hard rules the skill enforces
-
-- Every quantitative claim has a fetched URL — no hallucinated numbers, no invented suppliers.
-- Every "buyers want X" claim has ≥2 verbatim quotes from real threads.
-- The recommended positioning angle is traceable line-by-line to community evidence — no marketing copy fluff.
-- Multi-year (24–36 mo) seasonality is mandatory — single-year curves alone are not accepted because one-year spikes are often viral noise.
-- Reddit and community access is read-only — never authenticates as a posting account.
-- Cross-cutting gates: AOV ≥ $300, gross margin ≥ 25%, considered-purchase signal, operational fit.
+---
 
 ## Repo layout
 
 ```text
 ms-dropshipping-market-research/
-├── .claude-plugin/
-│   ├── plugin.json           # plugin manifest
-│   └── marketplace.json      # makes this repo its own marketplace
-├── skills/
-│   └── ms-dropshipping-market-research/
-│       ├── SKILL.md          # methodology & invocation rules
-│       ├── REVIEW_CRITERIA.md
-│       └── SCHEMA.md
-├── engine/                   # Python research engine
+├── .claude-plugin/{plugin.json, marketplace.json}   # plugin manifest + self-marketplace
+├── skills/ms-dropshipping-market-research/
+│   ├── SKILL.md            # methodology & invocation rules (two modes)
+│   ├── REVIEW_CRITERIA.md  # full per-criterion rubric
+│   └── SCHEMA.md           # opportunity brief format
+├── engine/                 # Python research engine
+│   ├── pipeline.yaml       # engines + enabled specialists (declarative)
 │   ├── pyproject.toml
-│   ├── src/niche_research/
-│   ├── CONVENTIONS.md        # SOLID / DRY / Service Architecture
-│   ├── PLAN.md               # build sequence
-│   └── README.md
-├── hooks/
-│   ├── hooks.json
-│   └── ensure_engine_installed.sh   # SessionStart auto-installer
+│   └── src/niche_research/
+│       ├── cli.py          # composition root (demand/competition/community/run/suggest/verify)
+│       ├── pipeline.py     # PipelineConfig loader
+│       ├── config.py       # dual-mode auth + settings
+│       ├── agents/         # demand, competition, community, discovery (+ _sdk, base)
+│       ├── services/       # orchestrator
+│       └── brief/          # models + writer
+├── hooks/                  # SessionStart auto-installer
+├── research.sh             # one-command entry point
+├── package.sh              # build a shareable archive
+├── VALIDATION.md           # share + validate guide
 ├── README.md
 └── LICENSE
 ```
 
-## Update
+---
 
-Updating to a new plugin version:
+## Update
 
 ```text
 /plugin update ms-dropshipping-market-research
 ```
 
-Restart Claude Code. The hook compares the bundled version against the marker file at `~/.local/share/ms-dropshipping-market-research/installed-version` and re-installs the engine if it changed.
+Restart Claude Code. The hook compares the manifest version against `~/.local/share/ms-dropshipping-market-research/installed-version` and reinstalls the engine if it changed.
 
-## Engine — direct CLI use
+---
 
-The engine can also be used standalone, outside Claude Code:
+## Status (v0.3.0)
 
-```bash
-niche-research demand "ergonomic standing desks"
-```
+Shipping today: **Discovery (`suggest`)**, **Demand (D1–D9)**, **Competition (top-5 products)**, **Community (Reddit comments)**, dual-mode auth, the one-command wrapper, and client packaging. Roadmap: Supply + Traffic specialists, paired reviewers, F1–F13 reconciliation, and the production data sources in `engine/PLAN.md`.
 
-Add your `.env` first (see `engine/.env.example`):
-
-```env
-ANTHROPIC_API_KEY=sk-ant-...
-LANGFUSE_HOST=http://localhost:3000   # if you self-host Langfuse
-LANGFUSE_PUBLIC_KEY=...
-LANGFUSE_SECRET_KEY=...
-```
-
-See `engine/README.md` for the full engine docs and `engine/PLAN.md` for the build sequence (only the Demand specialist ships today; more land iteratively).
-
-## Tuning the rubric
-
-Thresholds in `skills/ms-dropshipping-market-research/REVIEW_CRITERIA.md` are intentionally conservative. After ~20 briefs, review which criteria are letting losers through (false positives) or rejecting real winners (false negatives) and tighten accordingly. Never tune to make a specific niche pass — that's overfitting to noise.
-
-## Related
-
-The skill is Pipeline 1 of a larger **Storefront Engine** — a four-pipeline AI-driven dropshipping platform: market research → store construction → social content → organic traffic. Future plugins will cover the other pipelines.
+This skill is **Pipeline 1** of a larger **Storefront Engine** — a four-pipeline AI dropshipping platform: market research → store construction → social content → organic traffic.
 
 ## License
 

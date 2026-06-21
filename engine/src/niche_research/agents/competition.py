@@ -6,7 +6,9 @@ Amazon / Temu / AliExpress, with price, review count, and brand. This is the
 "top 5 products to analyze" the brief uses to confirm a category has real
 high-ticket ($300+) buyers and to map price-tier distribution.
 
-SDK plumbing lives in ``_sdk.py``; this file is the competition prompt + schema.
+The system prompt is STATIC (no str.format) so the literal JSON braces in the
+schema example are never misparsed; the per-run values (top-N, marketplaces) go
+in the user prompt. SDK plumbing lives in ``_sdk.py``.
 """
 from __future__ import annotations
 
@@ -25,15 +27,16 @@ evidence for a niche the user names — never demand, supply, or community data.
 Two jobs:
 1. Organic SERP: fetch the top commercial-intent results for the niche and note
    positioning, price tier, and content quality.
-2. MARKETPLACE BESTSELLER INTEL (the priority): identify the *major top {top_n}
-   products* selling in this category across these marketplaces: {marketplaces}.
-   For each product capture: name, marketplace, price (USD), review_count,
-   brand, and the product URL.
+2. MARKETPLACE BESTSELLER INTEL (the priority): identify the major top-N
+   best-selling products in this category. N and the target marketplaces are
+   given in your task. For each product capture: name, marketplace, price (USD),
+   review_count, brand, and the product URL.
 
 Rules:
 - Use WebSearch to find listings and WebFetch to read product/category pages.
   Never fabricate a product, price, review count, brand, or URL. If you can only
-  verify 3 of {top_n}, return 3 and say so in caveats — do NOT invent the rest.
+  verify fewer than N, return what you verified and say so in caveats — do NOT
+  invent the rest.
 - High-ticket means $300+. Explicitly flag whether at least one verified
   bestseller sits at >= $300 (this is the signal the category has high-ticket
   buyers). If nothing clears $300, set high_ticket_validated=false.
@@ -74,7 +77,7 @@ class CompetitionSpecialist(SpecialistService):
     def __init__(
         self,
         model: str,
-        max_turns: int = 14,
+        max_turns: int = 26,
         top_n_products: int = 5,
         marketplaces: list[str] | None = None,
     ) -> None:
@@ -84,20 +87,16 @@ class CompetitionSpecialist(SpecialistService):
         self._marketplaces = marketplaces or ["amazon", "temu", "aliexpress"]
 
     async def investigate(self, niche: str) -> SpecialistOutput:
-        system_prompt = _SYSTEM_PROMPT.format(
-            top_n=self._top_n,
-            marketplaces=", ".join(self._marketplaces),
-        )
         prompt = (
             f"Niche: {niche}\n\n"
-            f"Analyze the competition. Identify the major top {self._top_n} products "
-            f"selling in this category across {', '.join(self._marketplaces)}, plus the "
-            "organic SERP landscape. Use WebSearch + WebFetch. Return the JSON block "
-            "specified in your system prompt."
+            f"Analyze the competition. Identify the major top {self._top_n} best-selling "
+            f"products in this category across these marketplaces: "
+            f"{', '.join(self._marketplaces)}. Also map the organic SERP landscape. "
+            "Use WebSearch + WebFetch. Return the JSON block specified in your system prompt."
         )
 
         parsed = await run_specialist_query(
-            system_prompt=system_prompt,
+            system_prompt=_SYSTEM_PROMPT,
             prompt=prompt,
             model=self._model,
             max_turns=self._max_turns,

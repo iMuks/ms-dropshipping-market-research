@@ -21,6 +21,18 @@ _JSON_BLOCK_RE = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
 
 DEFAULT_TOOLS: tuple[str, ...] = ("WebSearch", "WebFetch")
 
+# Appended to every specialist system prompt (DRY). Web-research agents can
+# otherwise spend their whole turn budget fetching and never emit the final
+# JSON — this tells them to prioritize a complete answer over exhaustive search.
+_TURN_BUDGET_NOTE = (
+    "\n\nIMPORTANT — turn budget: you have a limited number of tool-call turns. "
+    "Prioritize EMITTING THE FINAL JSON BLOCK over exhaustive fetching. Gather the "
+    "most important evidence first; as you approach your turn limit, STOP fetching "
+    "and return the JSON block with what you have verified so far (note any gaps in "
+    "'caveats'). A complete JSON block with partial data is far better than running "
+    "out of turns with no output."
+)
+
 
 async def run_specialist_query(
     *,
@@ -32,24 +44,34 @@ async def run_specialist_query(
 ) -> dict:
     """Run one specialist agent loop and return its parsed JSON block.
 
-    Raises ``ValueError`` if the model never produced a valid ```json block —
-    the caller (or orchestrator) decides whether that aborts the section or
-    just marks it unavailable.
+    Resilient to the SDK erroring at the end of the loop (e.g. "max turns
+    reached"): if the agent already emitted a JSON block before the error, that
+    block is used; otherwise the original SDK error is surfaced. Raises
+    ``ValueError`` if the model simply never produced a valid ```json block.
     """
     options = ClaudeAgentOptions(
-        system_prompt=system_prompt,
+        system_prompt=system_prompt + _TURN_BUDGET_NOTE,
         allowed_tools=list(allowed_tools),
         model=model,
         max_turns=max_turns,
     )
 
     chunks: list[str] = []
-    async for message in query(prompt=prompt, options=options):
-        text = extract_text(message)
-        if text:
-            chunks.append(text)
+    sdk_error: Exception | None = None
+    try:
+        async for message in query(prompt=prompt, options=options):
+            text = extract_text(message)
+            if text:
+                chunks.append(text)
+    except Exception as e:  # e.g. max-turns error — try to salvage a JSON block first
+        sdk_error = e
 
-    return parse_json_block("\n".join(chunks))
+    try:
+        return parse_json_block("\n".join(chunks))
+    except ValueError:
+        if sdk_error is not None:
+            raise sdk_error
+        raise
 
 
 def extract_text(message: object) -> str:

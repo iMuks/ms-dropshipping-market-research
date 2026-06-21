@@ -10,7 +10,9 @@ Reddit access is READ-ONLY via the public ``.json`` endpoints fetched with
 WebFetch (e.g. ``https://www.reddit.com/r/<sub>/top.json?t=year&limit=25`` and a
 post's ``<permalink>.json`` for its comment tree). No auth, no posting account.
 
-SDK plumbing lives in ``_sdk.py``; this file is the community prompt + schema.
+The system prompt is STATIC (no str.format) so the literal JSON braces in the
+schema example are never misparsed; per-run values (subreddit/comment limits,
+timeframe) go in the user prompt. SDK plumbing lives in ``_sdk.py``.
 """
 from __future__ import annotations
 
@@ -28,12 +30,13 @@ for a niche the user names. Your superpower is READING real threads and quoting
 real people — not counting posts.
 
 Primary source — REDDIT (read-only):
-- Identify {max_subreddits} relevant subreddits for this niche.
+- Identify the relevant subreddits for this niche (how many is given in your task).
 - Use WebFetch on the public JSON endpoints — NO auth, NO login, NO posting:
-    https://www.reddit.com/r/<sub>/top.json?t={timeframe}&limit=25   (top posts)
+    https://www.reddit.com/r/<sub>/top.json?t=<timeframe>&limit=25   (top posts)
     https://www.reddit.com/<post_permalink>.json                     (comment tree)
-- Deep-read the top posts and up to {comments_per_post} comments per post from
-  the last 12 months. Pull VERBATIM user comments — the buyer's own words.
+  The timeframe and the number of comments to read per post are given in your task.
+- Deep-read the top posts and their comments from the last 12 months. Pull
+  VERBATIM user comments — the buyer's own words.
 Supporting sources (optional, when they surface real quotes): niche forums,
 Quora, YouTube comments. Marketplace 1-star reviews are unmet-need gold.
 
@@ -77,7 +80,7 @@ class CommunitySpecialist(SpecialistService):
     def __init__(
         self,
         model: str,
-        max_turns: int = 16,
+        max_turns: int = 26,
         max_subreddits: int = 4,
         comments_per_post: int = 25,
         timeframe: str = "year",
@@ -93,22 +96,19 @@ class CommunitySpecialist(SpecialistService):
         self._top_unmet = top_unmet
 
     async def investigate(self, niche: str) -> SpecialistOutput:
-        system_prompt = _SYSTEM_PROMPT.format(
-            max_subreddits=self._max_subreddits,
-            comments_per_post=self._comments_per_post,
-            timeframe=self._timeframe,
-        )
         prompt = (
             f"Niche: {niche}\n\n"
-            "Read real Reddit threads (read-only, via the public .json endpoints) and "
-            f"pull verbatim user comments. Synthesize the top {self._top_needs} stated "
-            f"needs and top {self._top_unmet} unmet needs, willingness-to-pay, and a "
-            "positioning angle traceable to the quotes. Use WebFetch on reddit .json "
-            "URLs. Return the JSON block specified in your system prompt."
+            f"Read real Reddit threads (read-only, via the public .json endpoints). "
+            f"Identify up to {self._max_subreddits} relevant subreddits; use t={self._timeframe} "
+            f"in the top.json URL and read up to {self._comments_per_post} comments per top post. "
+            f"Pull verbatim user comments and synthesize the top {self._top_needs} stated needs "
+            f"and top {self._top_unmet} unmet needs, willingness-to-pay, and a positioning angle "
+            "traceable to the quotes. Use WebFetch on reddit .json URLs. Return the JSON block "
+            "specified in your system prompt."
         )
 
         parsed = await run_specialist_query(
-            system_prompt=system_prompt,
+            system_prompt=_SYSTEM_PROMPT,
             prompt=prompt,
             model=self._model,
             max_turns=self._max_turns,

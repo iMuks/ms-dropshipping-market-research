@@ -41,7 +41,7 @@ gates:
 # candidate high-ticket products to then validate with `run`.
 discovery:
   engine: specialist
-  max_turns: 14
+  max_turns: 18
   default_count: 10
   min_aov_usd: 300
 
@@ -51,19 +51,19 @@ specialists:
   - id: demand
     enabled: true
     engine: specialist
-    max_turns: 12
+    max_turns: 18
 
   - id: competition
     enabled: true
     engine: specialist
-    max_turns: 14
+    max_turns: 26 # marketplace fetching is turn-heavy (5 products × 3 marketplaces + SERP)
     top_n_products: 5 # "major top 5" marketplace bestsellers to analyze
     marketplaces: [amazon, temu, aliexpress]
 
   - id: community
     enabled: true
     engine: specialist
-    max_turns: 16
+    max_turns: 26 # Reddit deep-read of posts + comment trees is turn-heavy
     reddit:
       max_subreddits: 4
       comments_per_post: 25

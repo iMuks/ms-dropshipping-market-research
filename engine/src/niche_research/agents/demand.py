@@ -111,7 +111,7 @@ Output format (return exactly this JSON in a fenced ```json block, nothing else 
 class DemandSpecialist(SpecialistService):
     """v0.3 Demand specialist covering the full D1–D9 criteria."""
 
-    def __init__(self, model: str, max_turns: int = 14) -> None:
+    def __init__(self, model: str, max_turns: int = 18) -> None:
         self._model = model
         self._max_turns = max_turns
 
