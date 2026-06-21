@@ -60,12 +60,18 @@ class Config(BaseSettings):
     )
 
     # --- Anthropic ---
-    anthropic_api_key: str = Field(..., alias="ANTHROPIC_API_KEY")
+    # Optional: when absent, the engine runs in "subscription" auth mode and
+    # relies on the Claude Code CLI's own login (Pro/Max). When present, the
+    # engine runs in "api-key" mode (pay-per-token billing). See `auth_mode`.
+    anthropic_api_key: str | None = Field(None, alias="ANTHROPIC_API_KEY")
 
     # --- Models ---
-    orchestrator_model: str = Field("claude-opus-4-7", alias="ORCHESTRATOR_MODEL")
+    # Used by the single-section debug commands and as fallbacks. The full
+    # `run` pipeline takes its model engines from pipeline.yaml (`engines:`),
+    # which is the single source of truth for a full-pipeline run.
+    orchestrator_model: str = Field("claude-opus-4-8", alias="ORCHESTRATOR_MODEL")
     specialist_model: str = Field("claude-sonnet-4-6", alias="SPECIALIST_MODEL")
-    reviewer_model: str = Field("claude-opus-4-7", alias="REVIEWER_MODEL")
+    reviewer_model: str = Field("claude-opus-4-8", alias="REVIEWER_MODEL")
 
     # --- Budget ---
     cost_cap_usd_per_brief: float = Field(5.0, alias="COST_CAP_USD_PER_BRIEF")
@@ -74,6 +80,15 @@ class Config(BaseSettings):
     langfuse_host: str = Field("http://localhost:3000", alias="LANGFUSE_HOST")
     langfuse_public_key: str | None = Field(None, alias="LANGFUSE_PUBLIC_KEY")
     langfuse_secret_key: str | None = Field(None, alias="LANGFUSE_SECRET_KEY")
+
+    @property
+    def auth_mode(self) -> str:
+        """How the engine will authenticate the Claude Agent SDK.
+
+        - ``"api-key"``    — an API key is configured (pay-per-token billing).
+        - ``"subscription"`` — no key; rely on the Claude Code CLI login (Pro/Max).
+        """
+        return "api-key" if self.anthropic_api_key else "subscription"
 
     @property
     def engine_root(self) -> Path:

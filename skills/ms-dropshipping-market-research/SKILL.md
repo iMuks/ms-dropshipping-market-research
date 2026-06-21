@@ -1,48 +1,73 @@
 ---
 name: ms-dropshipping-market-research
-description: Investigate a niche for high-ticket Shopify dropshipping. Produces an evidence-cited opportunity brief covering demand (with 24–36 month seasonality and a predicted next launch window), competition (with marketplace bestseller intel from Amazon / Temu / Shein / AliExpress), supplier verification, traffic sizing, and community needs synthesized from Reddit and marketplace reviews. Apply a domain-specific multi-criteria rubric; every claim must be backed by a fetched URL. Use this skill whenever the user asks to research, analyze, validate, score, or pick a niche for high-ticket dropshipping; whenever they say "is X a good dropshipping niche", "find me a niche for high-ticket dropshipping", "what's the demand for X", or anything in that family.
+description: High-ticket Shopify dropshipping market research (Storefront Engine Pipeline 1). Runs in two modes. DISCOVER — suggest a ranked list of high-ticket product/niche ideas (AOV ≥ $300) to research. VALIDATE — produce an evidence-cited opportunity brief for a named niche covering demand (24–36 month multi-year seasonality, a forecast of the next seasonal window with confidence, and a per-region geographic breakdown), competition (marketplace bestseller intel — the major top products from Amazon / Temu / AliExpress), supplier verification, traffic sizing, and community needs synthesized from verbatim Reddit comments and marketplace reviews. Scored on a domain-specific multi-criteria rubric; every claim must be backed by a fetched URL. Use this skill whenever the user asks to research, analyze, validate, score, or pick a high-ticket dropshipping niche — OR to suggest, find, or list high-ticket products to sell. Triggers include "is X a good dropshipping niche", "research X for high-ticket dropshipping", "what's the demand for X", "validate X", "suggest high-ticket products", "what should I sell", "find me a high-ticket niche", and anything in that family.
 ---
 
 # Mukesh — High-Ticket Dropshipping Market Research
 
-This skill executes Pipeline 1 of the user's Storefront Engine. The output is a structured opportunity brief that decides whether a niche advances to store construction.
+This skill executes Pipeline 1 of the Storefront Engine. It runs in two modes — **discover** candidate high-ticket products, or **validate** a named niche into a structured opportunity brief that decides whether it advances to store construction.
 
 ## When to trigger
 
-Trigger this skill when the user asks anything in this family:
+Trigger this skill when the user asks anything in this family. There are **two modes**:
+
+**Validate a named niche** (the user gives a product/niche):
 - "Research <niche> for high-ticket dropshipping"
 - "Is <niche> a viable dropshipping niche?"
 - "What's the demand and competition for <niche>?"
-- "Pick a niche for high-ticket Shopify dropshipping"
-- "Validate <niche> for me"
-- "Score <niche>"
+- "Validate <niche> for me" / "Score <niche>"
+
+**Discover products** (the user gives no niche, or asks for ideas):
+- "/ms-dropshipping-market-research" (no argument)
+- "Suggest high-ticket dropshipping products" / "What should I sell?"
+- "Find me high-ticket product ideas" / "Pick a niche for high-ticket Shopify dropshipping"
+- "Give me a list of products/items for high-ticket dropshipping"
 
 Do **not** trigger for: low-ticket / impulse-buy categories, generic ecommerce questions, or research unrelated to product/niche selection.
 
 ## Inputs
 
-- **niche** (required): the niche or product category to investigate, e.g. `"ergonomic standing desks"`, `"high-end cornhole boards"`, `"residential mini-splits"`.
+- **niche** (optional): the niche or product category to investigate, e.g. `"ergonomic standing desks"`, `"high-end cornhole boards"`, `"residential mini-splits"`. **If omitted, run discovery mode** — suggest a ranked list of high-ticket products to research.
+- **seed/focus** (optional): a category or interest to focus discovery, e.g. `"aging-in-place"`, `"home gym"`.
 - **target geo** (optional, default: US): primary market to evaluate.
 
-## How to execute — two paths
+## How to execute
 
-### Path A — Engine CLI is installed (preferred)
+This is a one-shot: **preflight → login (only if needed) → discover or validate → present the result.** The bundled `research.sh` chains every step, so prefer it; the manual CLI equivalents follow so you can drive each piece or handle the login stop.
 
-This plugin **bundles the `niche-research` Python engine** in its `engine/` directory and auto-installs it on session start via the SessionStart hook (`hooks/ensure_engine_installed.sh`). On Macs with `uv` or `pipx` installed, the CLI is on PATH the first time the plugin activates — no manual setup needed.
-
-Check with `command -v niche-research`. If found, invoke:
+### The one command (preferred)
 
 ```bash
-niche-research demand "<niche>"
+# DISCOVER — suggest high-ticket products (no niche given):
+"${CLAUDE_PLUGIN_ROOT:-.}/research.sh"
+"${CLAUDE_PLUGIN_ROOT:-.}/research.sh" --suggest "<optional focus>"
+
+# VALIDATE — full opportunity brief for a named niche:
+"${CLAUDE_PLUGIN_ROOT:-.}/research.sh" "<niche>"
 ```
 
-The engine returns a structured `SpecialistOutput` with evidence URLs and Langfuse-traced execution. Report the output verbatim, then briefly summarize the verdict at the top.
+If `research.sh` stops at the login step, relay its sign-in instruction to the user and stop until they've completed it (browser sign-in is interactive — only the user can do it):
 
-> The engine currently only ships the Demand specialist. For the other sections (Competition / Supply / Traffic / Community Needs / cross-section reconciliation), fall through to Path B and explicitly note in the response which sections came from the CLI vs from this skill's fallback. As more specialists land in the engine, the skill will use Path A for them automatically.
+> Sign in to your Claude account first — run this in the prompt, pick your **Pro/Max** account, then re-invoke:
+> ```
+> ! claude /login
+> ```
 
-### Path B — Fallback (engine CLI not installed, or sections not yet built)
+### What it does, step by step (manual equivalents)
 
-Execute the full methodology yourself using `WebSearch` and `WebFetch`. Follow the criteria in [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md) and the brief format in [SCHEMA.md](SCHEMA.md). Both files live alongside this skill.
+1. **Locate the engine CLI:** `command -v niche-research` (installed by the SessionStart hook `hooks/ensure_engine_installed.sh`), else `uv run --project "${CLAUDE_PLUGIN_ROOT:-engine}" niche-research …`. If neither runs, use **Path B**.
+2. **Preflight + login (free — no tokens, no API call):** `niche-research verify`. Auth is **subscription** by default (reuses the Claude Code Pro/Max login — no API key) or **api-key** if `ANTHROPIC_API_KEY` is set. If verify's `Auth:` line is ✗, STOP and have the user run `! claude /login`, then re-invoke.
+3. **Pick the mode from what the user gave you:**
+   - **No niche / "suggest products" → DISCOVER:** `niche-research suggest [focus]`. Returns a ranked shortlist (see *Discovery output* below). Present it; note each can be deep-validated with `niche-research run "<name>"`, and offer to validate the top pick.
+   - **A niche is named → VALIDATE:** `niche-research run "<niche>"`. Runs the enabled specialists in `engine/pipeline.yaml` — **§1 Demand** (24–36-month multi-year overlay, predicted next seasonal window, per-region geographic breakdown), **§2 Competition** (major top-5 marketplace products), **§5 Community Needs** (verbatim Reddit comments) — scores them, and writes the brief to `~/niche-research/briefs/<slug>-<date>.md`. **Read that file and present it**, leading with the verdict + score.
+
+### After a validation run — fill the gaps
+
+The engine does not yet produce **§3 Supply**, **§4 Traffic**, or the **F1–F13** reconciliation. Produce those via **Path B** and merge into the same template; mark `mode: hybrid`. The engine **never emits `APPROVED` on a partial run** (capped at `PROVISIONAL`) — only upgrade to `APPROVED`/`REJECTED` after Supply + Traffic + reconciliation exist and all cross-cutting gates are evaluated. To run one section for debugging (cheaper): `niche-research demand|competition|community "<niche>"`.
+
+### Path B — Fallback (engine unavailable)
+
+Execute the methodology yourself with `WebSearch` + `WebFetch`, following [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md) and [SCHEMA.md](SCHEMA.md) (both alongside this skill). For **discovery**, produce the ranked list in *Discovery output* below; for **validation**, produce the full brief template. Mark `mode: skill-fallback`.
 
 ## Methodology — the five sections
 
@@ -50,12 +75,13 @@ Produce each section in order. Every quantitative claim, supplier, competitor, a
 
 ### §1 Demand
 
-- Pull **multi-year** Google Trends data (24–36 months) — single-year curves are not accepted. Use Google Trends URLs the user can verify.
-- Identify the **top 10–20 commercial-intent keywords** with rough monthly search volumes; cite the source for each volume.
-- Compute the **year-over-year overlay**: do peaks repeat in the same months across years? Drift in peak month ≤ 30 days = real seasonality. One-time spikes = noise.
-- Output a **predicted next seasonal window** — start month, expected duration, magnitude, and confidence (HIGH / MED / LOW), with reasoning grounded in the multi-year overlay.
-- Output a **recommended build → launch lead time** in weeks.
-- Identify the **macro trend** the niche maps to (remote work, longevity, EV adoption, aging-in-place, home automation, sustainability, etc.) — cite a source.
+- Pull **multi-year** Google Trends data (24–36 months) — single-year curves are not accepted. Cite the multi-year Trends URL (it encodes the date range + geo) so the user can verify it. *(D2/D3)*
+- Compute the **year-over-year overlay**: per year, the average level (for YoY growth %), the peak month, and the peak-to-trough ratio. Then check whether the peak month **repeats** in the same calendar window across years — drift ≤ 30 days = real seasonality; different peak months = viral noise, not seasonal. *(D2/D3/D4)*
+- Output a **predicted next seasonal window** — start month, expected duration, magnitude vs base, and confidence (HIGH / MED / LOW), with reasoning grounded in the multi-year overlay. *(D8 — a hard-fail criterion)*
+- Output a **recommended build → launch lead time** in weeks (how far ahead of the window the store must be live).
+- Identify the **top 10–20 commercial-intent keywords** with rough monthly search volumes (cite each), label each keyword's intent, and state the **buyer-intent mix** (% transactional/commercial) and **query freshness** (% of queries from the last 12 months). *(D1/D5/D9)*
+- Produce a **geographic breakdown** — the top countries/regions by relative demand (use Google Trends "by region"), cited. This drives geo-alignment with supply/traffic in §6 F2. *(D6)*
+- Identify the **macro trend** the niche maps to (remote work, longevity, EV adoption, aging-in-place, home automation, sustainability, etc.) — cite a source. *(D7)*
 
 ### §2 Competition — including marketplace intel
 
@@ -145,6 +171,16 @@ APPROVED iff:
 
 Otherwise: `REJECTED`, with the failing criteria and reasons explicit.
 
+## Discovery output (suggest mode)
+
+In discovery mode the deliverable is a **ranked shortlist**, not a brief. Lead with a one-line theme, then a ranked table:
+
+```markdown
+| # | Product / niche | Category | Price range | ~AOV | Competition | Opportunity (0–1) |
+```
+
+Then, per candidate: a 1–2 sentence rationale (why it clears high-ticket + where the wedge is), the demand and supplier signal, **one source URL**, and the exact next step `niche-research run "<name>"`. Apply the same hard rules as a brief — each candidate must clear **AOV ≥ $300**, be a considered purchase, and be dropship-operable; cite a real URL for each claimed signal; never invent a product, price, or URL. Close by offering to validate the top pick.
+
 ## Required output template — the customer's "designed output"
 
 Every brief MUST be a single markdown document with this exact structure. This is what the customer pays for; it does not vary by niche.
@@ -165,8 +201,9 @@ mode: engine-CLI | skill-fallback | hybrid
 
 ## §1 Demand — <PASS / WEAK / FAIL>
 - Per-criterion table (D1–D9 with PASS/WEAK/FAIL and a URL per row)
-- Predicted next seasonal window + build→launch lead time
-- 36-month trajectory note
+- 24–36 month multi-year overlay: YoY growth, peak month, and peak/trough per year
+- Predicted next seasonal window (confidence) + build→launch lead time
+- Geographic breakdown (top regions by relative demand) + buyer-intent mix
 
 ## §2 Competition — <PASS / WEAK / FAIL>
 - Per-criterion table (C1–C10)
@@ -214,8 +251,9 @@ mode: engine-CLI | skill-fallback | hybrid
 
 ## §10 Self-verification checklist
 The skill MUST end the brief with this checklist, ticking each box that applies:
-- [ ] §1 includes 36-month multi-year overlay (NOT 12-month only)
+- [ ] §1 includes 24–36 month multi-year overlay with YoY repetition (NOT 12-month only)
 - [ ] §1 includes predicted next seasonal window with confidence (HIGH/MED/LOW)
+- [ ] §1 includes a per-region geographic breakdown (D6)
 - [ ] §2 includes marketplace bestseller intel with at least one platform fetched
 - [ ] §3 has ≥3 verifiable suppliers, each with a fetched URL
 - [ ] §5 includes at least one source from Reddit / Facebook Group / Facebook Page
@@ -254,4 +292,4 @@ If you cannot satisfy a rule (e.g., a source is genuinely unreachable), document
 - [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md) — full per-criterion rubric with weights, thresholds, and evidence requirements.
 - [SCHEMA.md](SCHEMA.md) — opportunity brief format.
 
-These are kept in sync with the canonical files at `Dropshipping/engine/src/niche_research/brief/` in the user's Storefront Engine project.
+These ship alongside this skill and are kept in sync with the engine's canonical copies in `engine/src/niche_research/brief/`.

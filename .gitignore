@@ -3,3 +3,21 @@
 *.swo
 .idea/
 .vscode/
+
+# Secrets — never commit or ship
+.env
+engine/.env
+
+# Python build / venvs / caches
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.verifyenv/
+uv.lock
+
+# Build artifacts
+dist/
+
+# Generated briefs
+briefs/

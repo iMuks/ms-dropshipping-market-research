@@ -52,3 +52,32 @@ class SpecialistOutput(BaseModel):
     verdict: Verdict = Verdict.UNREVIEWED
     produced_at: datetime = Field(default_factory=_utcnow)
     cost_usd: float = 0.0
+
+
+class ProductCandidate(BaseModel):
+    """One suggested high-ticket dropshipping product/niche from discovery mode.
+
+    Each candidate is a *lead* to deep-validate with the full pipeline
+    (`niche-research run "<name>"`), not a finished brief.
+    """
+
+    name: str
+    category: str = ""
+    price_range_usd: str = ""  # e.g. "$400–$900"
+    est_aov_usd: float | None = None
+    demand_signal: str = ""  # short phrase, e.g. "rising, ~40k searches/mo"
+    competition_level: str = "unknown"  # low | medium | high | unknown
+    supplier_availability: str = ""  # short phrase
+    opportunity_score: float = 0.0  # 0..1, higher = stronger lead
+    rationale: str = ""  # why this is a high-ticket opportunity
+    evidence: list[EvidenceURL] = Field(default_factory=list)
+
+
+class DiscoveryResult(BaseModel):
+    """A ranked list of candidate products produced by discovery mode."""
+
+    seed: str | None = None  # optional focus the user gave, or None for general
+    geo: str = "US"
+    candidates: list[ProductCandidate] = Field(default_factory=list)
+    summary: str = ""
+    produced_at: datetime = Field(default_factory=_utcnow)

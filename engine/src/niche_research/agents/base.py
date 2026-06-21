@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from niche_research.brief.models import SpecialistOutput, Verdict
+from niche_research.brief.models import DiscoveryResult, SpecialistOutput, Verdict
 
 
 class SpecialistService(ABC):
@@ -17,6 +17,20 @@ class SpecialistService(ABC):
     @abstractmethod
     async def investigate(self, niche: str) -> SpecialistOutput:
         """Run the specialist's research and return a structured output."""
+
+
+class DiscoveryService(ABC):
+    """Suggests candidate high-ticket products to research (the inverse of a
+    specialist: instead of validating a named niche, it *finds* niches).
+
+    Segregated from SpecialistService (ISP): discovery and section-research are
+    different jobs with different output shapes, so they are different interfaces.
+    """
+
+    @abstractmethod
+    async def discover(self, seed: str | None, count: int) -> DiscoveryResult:
+        """Return up to ``count`` candidate products, optionally focused by
+        ``seed`` (a category/interest/constraint); ``None`` = general discovery."""
 
 
 class ReviewVerdict:

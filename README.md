@@ -60,8 +60,62 @@ score luxury home gym equipment as a dropshipping opportunity
 You can also run the engine directly from any terminal:
 
 ```bash
-niche-research demand "ergonomic standing desks"
+# ── One command does everything (bootstraps deps, verifies login, runs) ──
+./research.sh                              # suggest high-ticket products to research
+./research.sh --suggest "home gym"         # focused product discovery
+./research.sh "ergonomic standing desks"   # full opportunity brief for a niche
+
+# ── Or call the CLI directly ──
+niche-research suggest                      # discovery: ranked high-ticket product ideas
+niche-research suggest "aging-in-place"     # focused discovery
+niche-research run "ergonomic standing desks"   # full pipeline → assembled brief
+
+# One section at a time (debug / cheaper):
+niche-research demand      "ergonomic standing desks"
+niche-research competition "ergonomic standing desks"   # major top-5 marketplace products
+niche-research community   "ergonomic standing desks"   # verbatim Reddit user comments
+
+niche-research verify        # smoke-test the install — no API call, no money spent
 ```
+
+### Two modes: discover, then validate
+
+1. **Discover** — `suggest` returns a ranked shortlist of candidate high-ticket
+   products (name, price range, ~AOV, competition, opportunity score, why-it's-a-lead,
+   source URL). No niche needed.
+2. **Validate** — `run "<name>"` deep-validates one candidate into a full
+   evidence-cited brief.
+
+`research.sh` is the single self-bootstrapping entry point: it resolves a runner
+(installed CLI, else `uv run` which installs deps on first call), runs `verify`,
+then picks discovery or validation based on whether you named a niche. Auth uses
+your **Claude Pro/Max subscription** by default — no separate API key needed.
+
+### `pipeline.yaml` — engines + which specialists run
+
+`engine/pipeline.yaml` is the declarative control surface for a full `run`: it
+defines the **model engine per role**, the **scoring weights**, the
+**cross-cutting gates**, and **which specialists are enabled**. Secrets stay in
+`.env`; `pipeline.yaml` decides *what* runs and *with which model*.
+
+```yaml
+engines:
+  orchestrator: claude-opus-4-8
+  specialist:   claude-sonnet-4-6
+  reviewer:     claude-opus-4-8
+specialists:
+  - { id: demand,      enabled: true,  engine: specialist }
+  - { id: competition, enabled: true,  engine: specialist, top_n_products: 5 }
+  - { id: community,   enabled: true,  engine: specialist, reddit: { max_subreddits: 4 } }
+  - { id: supply,      enabled: false }   # not yet built
+  - { id: traffic,     enabled: false }   # not yet built
+```
+
+Override the file location with `NICHE_RESEARCH_PIPELINE_FILE`, or drop a
+`pipeline.yaml` in your cwd / `~/.config/niche-research/`. Today **demand,
+competition, and community** ship; the engine caps the verdict at
+`PROVISIONAL` until Supply, Traffic, and the paired reviewers land — it never
+emits `APPROVED` on a partial run.
 
 ## How it works — two execution paths
 

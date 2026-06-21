@@ -1,6 +1,6 @@
 [project]
 name = "niche-research"
-version = "0.1.0"
+version = "0.3.0"
 description = "Pipeline 1 of the Storefront Engine — AI-driven high-ticket niche research as a CLI"
 requires-python = ">=3.11"
 dependencies = [
@@ -29,8 +29,8 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/niche_research"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "ruff>=0.5.0",

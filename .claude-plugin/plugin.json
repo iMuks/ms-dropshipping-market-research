@@ -1,6 +1,6 @@
 {
   "name": "ms-dropshipping-market-research",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "High-ticket Shopify dropshipping niche research for Claude Code. Bundles the /ms-dropshipping-market-research skill AND the niche-research Python engine CLI. Produces evidence-cited opportunity briefs with a multi-criteria rubric (demand with 24-36mo seasonality, competition with marketplace bestseller intel, supply verification, traffic sizing, community needs from Reddit + marketplace reviews).",
   "author": {
     "name": "Mukesh Sharma",

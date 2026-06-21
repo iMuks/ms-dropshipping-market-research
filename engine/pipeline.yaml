@@ -1,0 +1,84 @@
+# pipeline.yaml — declarative configuration for Pipeline 1 (market research).
+#
+# Secrets (API keys) live in .env; THIS file defines *what* runs and *with which
+# model engine*. The `niche-research run "<niche>"` command reads this to
+# assemble a full opportunity brief.
+#
+# Search order (first hit wins), see pipeline.py:
+#   1. $NICHE_RESEARCH_PIPELINE_FILE
+#   2. ./pipeline.yaml (current working directory)
+#   3. ~/.config/niche-research/pipeline.yaml
+#   4. the bundled engine/pipeline.yaml (this file)
+
+version: 1
+name: pipeline-1-market-research
+geo_default: US
+
+# Model engines by role. Each specialist references one of these by name via
+# its `engine:` key. Keep these as bare current model IDs (no date suffix).
+engines:
+  orchestrator: claude-opus-4-8
+  specialist: claude-sonnet-4-6
+  reviewer: claude-opus-4-8
+
+# Final-score weights across the five sections (should sum to 1.0). When a
+# section is disabled or fails, the orchestrator renormalizes over the
+# sections that actually produced a score and marks the brief PROVISIONAL.
+weights:
+  demand: 0.22
+  competition: 0.18
+  supply: 0.25
+  traffic: 0.13
+  community: 0.22
+
+# Cross-cutting gates — any FAIL → REJECTED (see SKILL.md).
+gates:
+  min_aov_usd: 300
+  min_gross_margin: 0.25
+  approve_threshold: 0.70
+
+# Discovery mode — `niche-research suggest [SEED]` returns a ranked list of
+# candidate high-ticket products to then validate with `run`.
+discovery:
+  engine: specialist
+  max_turns: 14
+  default_count: 10
+  min_aov_usd: 300
+
+# Specialists. `enabled: false` skips a section; the assembled brief marks it
+# UNAVAILABLE and downgrades the verdict to PROVISIONAL.
+specialists:
+  - id: demand
+    enabled: true
+    engine: specialist
+    max_turns: 12
+
+  - id: competition
+    enabled: true
+    engine: specialist
+    max_turns: 14
+    top_n_products: 5 # "major top 5" marketplace bestsellers to analyze
+    marketplaces: [amazon, temu, aliexpress]
+
+  - id: community
+    enabled: true
+    engine: specialist
+    max_turns: 16
+    reddit:
+      max_subreddits: 4
+      comments_per_post: 25
+      timeframe: year # reddit .json ?t=<timeframe>
+    top_needs: 5
+    top_unmet: 3
+
+  # Not yet implemented — see engine/PLAN.md. Left here so the pipeline shape
+  # is visible and these slot in by flipping `enabled: true` once built.
+  - id: supply
+    enabled: false
+    engine: specialist
+    max_turns: 12
+
+  - id: traffic
+    enabled: false
+    engine: specialist
+    max_turns: 12
